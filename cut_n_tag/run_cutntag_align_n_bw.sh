@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e  # This ensures the script exits on errors
+set -u  # Treat unset variables as an error
 
 run_cutntag_align_n_bw() {
     # Function to generate a SLURM job for BOWTIE alignment for a single sample
@@ -31,7 +33,7 @@ run_cutntag_align_n_bw() {
                 shift 2
                 ;;
             --bowtie_idx)
-                GENOME_DIR="$2"
+                BOWTIE_IDX="$2"
                 shift 2
                 ;;
             --output_dir)
@@ -111,6 +113,9 @@ run_cutntag_align_n_bw() {
 #SBATCH --job-name=cutntag_align_n_bw_${SAMPLE_NAME}
 #SBATCH --output=${OUTPUT_DIR}/slurm_logs/cutntag_align_n_bw_${TIMESTAMP}_${SAMPLE_NAME}.out
 #SBATCH --error=${OUTPUT_DIR}/slurm_logs/cutntag_align_n_bw_${TIMESTAMP}_${SAMPLE_NAME}.err
+
+set -e  # This ensures the script exits on errors
+set -u  # Treat unset variables as an error
 
 SAMPLE_HANDLE=${OUTPUT_DIR}/${SAMPLE_NAME}
 
