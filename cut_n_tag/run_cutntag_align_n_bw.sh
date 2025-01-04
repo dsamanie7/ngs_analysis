@@ -74,6 +74,19 @@ run_cutntag_align_n_bw() {
     # Ensure output directory exists
     mkdir -p "$OUTPUT_DIR/slurm_logs"
 
+    # Check if input file exists
+    if [ ! -f "${INPUT_DIR}/${SAMPLE_NAME}_R1_001.fastq" ]; then
+        echo "Error: Input file ${INPUT_DIR}/${SAMPLE_NAME}_R1_001.fastq not found."
+        exit 1
+    fi
+    if [ "$PAIRED_END" = true ]; then
+        if [ ! -f "${INPUT_DIR}/${SAMPLE_NAME}_R2_001.fastq" ]; then
+            echo "Error: Input file ${INPUT_DIR}/${SAMPLE_NAME}_R2_001.fastq not found."
+            exit 1
+        fi
+    fi
+
+
     # Define input files based on single or paired-end
     local READ_FILES=""
     if [ "$PAIRED_END" = true ]; then
@@ -103,7 +116,7 @@ SAMPLE_HANDLE=${OUTPUT_DIR}/${SAMPLE_NAME}
 
 # Map to reference genome using Bowtie
 module load bowtie
-bowtie -p 16 \
+bowtie -p ${CPUs} \
     -S \
     --fr \
     --chunkmbs 1024 \
@@ -118,7 +131,7 @@ samtools view \
     -bS ${SAMPLE_HANDLE}.mapped.sam \
     > ${SAMPLE_HANDLE}.mapped.bam
 samtools sort \
-    -@ 16 \
+    -@ ${CPUs} \
     -o ${SAMPLE_HANDLE}.sorted.bam \
     ${SAMPLE_HANDLE}.mapped.bam
 samtools index ${SAMPLE_HANDLE}.sorted.bam
@@ -130,7 +143,7 @@ module load picard/2.21.4
 picard MarkDuplicates \
     I=${SAMPLE_HANDLE}.sorted.bam \
     O=${SAMPLE_HANDLE}.sorted_noPCR.bam \
-    M=metrics.txt \
+    M=${OUTPUT_DIR}/metrics_${SAMPLE_NAME}.txt \
     REMOVE_DUPLICATES=true
 samtools index ${SAMPLE_HANDLE}.sorted_noPCR.bam
 
@@ -139,14 +152,14 @@ samtools index ${SAMPLE_HANDLE}.sorted_noPCR.bam
 # # with PCRs
 module load deeptools
 bamCoverage \
-    --numberOfProcessors 16 \
+    --numberOfProcessors ${CPUs} \
     -b ${SAMPLE_HANDLE}.sorted.bam \
     --normalizeUsing CPM \
     -o ${SAMPLE_HANDLE}.sorted.bw
 
 # # withOut PCRs
 bamCoverage \
-    --numberOfProcessors 16 \
+    --numberOfProcessors ${CPUs} \
     -b ${SAMPLE_HANDLE}.sorted_noPCR.bam \
     --normalizeUsing CPM \
     -o ${SAMPLE_HANDLE}.sorted_noPCR.bw
@@ -167,5 +180,5 @@ EOT
 }
 
 if [[ "$0" == "$BASH_SOURCE" ]]; then
-    run_star_align_n_count "$@"
+    run_cutntag_align_n_bw "$@"
 fi
